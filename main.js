@@ -92,20 +92,6 @@ function getSameSnapshotIdRows(index) {
   return i;
 }
 
-// 上一条公告的最后一行
-function getPreSnap(index, snapshotId) {
-  if (!snapshotId) {
-    return {};
-  }
-  let curIndex = index - 1;
-  let obj = json[curIndex];
-  while (obj["公告snapshot_id"] !== snapshotId) {
-    curIndex--;
-    obj = json[curIndex];
-  }
-  return obj;
-}
-
 function removeSubRows(obj,index) {
   log.pink('===================当前处于编辑模式==========================')
     let id =
@@ -125,7 +111,7 @@ function removeSubRows(obj,index) {
 }
 
 function checkDuplicate(obj,index) {
-  let preSnap = getPreSnap(index, config.lastSnapshotId);
+  let preSnap = json[index-1]
   if (obj["公告标题"] === preSnap["公告标题"]) {
     obj[
       "备注（缺少表格的，需要注明表格）"
@@ -147,7 +133,7 @@ async function handleOneSnapshot(content, index) {
   console.log(
     `\n========snapshotId：${obj["公告snapshot_id"]}====${getProgress(
       index
-    )} ========上一条${config.lastSnapshotId}============`
+    )} ====================`
   );
   log.green(obj);
 
@@ -338,7 +324,8 @@ async function addOneRow({row, index, content, attachmentNum, defaultValue}) {
 
   Object.keys(res).forEach((key) => {
     let val = res[key];
-    if (val !== 0 &&!isNaN(val)) {
+    // 剔除NaN
+    if ( val !== 0 && val===val) {
       obj[key] = val;
     }
   });
