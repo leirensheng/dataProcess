@@ -24,7 +24,15 @@ async function getContent(page) {
       return dom.innerHTML;
     });
     content = await page.$eval(".article-content", (el) => {
-      return el.innerHTML;
+      let str = el.innerHTML;
+      // 去掉回车
+      str = str.replace(/\n/g, "");
+      // 去掉空标签
+      str = str.replace(
+        /<(span|p|div|strong)[^>]*?><\/(p|strong|div|span)>/g,
+        ""
+      );
+      return str;
     });
   } catch (e) {
     content = "";
@@ -106,37 +114,37 @@ function getPreSnap(index, snapshotId) {
   return obj;
 }
 
-function removeSubRows(obj,index) {
-  log.pink('===================当前处于编辑模式==========================')
-    let id =
-      obj[
-        "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
-      ];
-    let arr = String(id).split(".");
-    if (arr.length === 2) {
-      throw new Error("当前index不对");
-    } else {
-      let sameSnapshotIdRows = getSameSnapshotIdRows(index);
-      if (sameSnapshotIdRows !== 1) {
-        console.log(`=======删除${sameSnapshotIdRows - 1}条=========`);
-        json.splice(index + 1, sameSnapshotIdRows - 1);
-      }
+function removeSubRows(obj, index) {
+  log.pink("===================当前处于编辑模式==========================");
+  let id =
+    obj[
+      "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
+    ];
+  let arr = String(id).split(".");
+  if (arr.length === 2) {
+    throw new Error("当前index不对");
+  } else {
+    let sameSnapshotIdRows = getSameSnapshotIdRows(index);
+    if (sameSnapshotIdRows !== 1) {
+      console.log(`=======删除${sameSnapshotIdRows - 1}条=========`);
+      json.splice(index + 1, sameSnapshotIdRows - 1);
     }
+  }
 }
 
-function checkDuplicate(obj,index) {
+function checkDuplicate(obj, index) {
   let preSnap = getPreSnap(index, config.lastSnapshotId);
   if (obj["公告标题"] === preSnap["公告标题"]) {
     obj[
       "备注（缺少表格的，需要注明表格）"
     ] = `与${preSnap["公告snapshot_id"]}重复`;
-    log.yellow(`========与${preSnap["公告snapshot_id"]}重复==========`)
-    return true
+    log.yellow(`========与${preSnap["公告snapshot_id"]}重复==========`);
+    return true;
   }
-  return false
+  return false;
 }
 
-function addHandler(obj){
+function addHandler(obj) {
   obj["处理人"] = config.userInfo.handler;
   obj["处理时间"] = utils.formatDate(new Date());
 }
@@ -145,31 +153,38 @@ async function handleOneSnapshot(content, index) {
   let obj = json[index];
 
   console.log(
-    `\n========snapshotId：${obj["公告snapshot_id"]}====${getProgress(
+    `\n========📣snapshotId：${obj["公告snapshot_id"]}====${getProgress(
       index
-    )} ========上一条${config.lastSnapshotId}============`
+    )} ========上一条${config.lastSnapshotId}📣============`
   );
   log.green(obj);
 
-  let isEdit = obj["处理人"]
+  let isEdit = obj["处理人"];
   // 编辑的时候不考虑和上一条重复与否
   if (isEdit) {
     // 先删除有小数的同个公告的行
-    removeSubRows(obj,index)
-  }else{
-    let isDuplicate = checkDuplicate(obj,index)
-    if(isDuplicate){
-      addHandler(obj)
-      return 1
+    removeSubRows(obj, index);
+  } else {
+    let isDuplicate = checkDuplicate(obj, index);
+    if (isDuplicate) {
+      addHandler(obj);
+      return 1;
     }
-  }  
-  addHandler(obj)
+  }
+  addHandler(obj);
 
   let startTime = Date.now();
 
   let template = { ...obj };
   let defaultValue = getDefaultValueFromContent(content);
-  let { allNum, failNum, successNum, hasAttachment } = defaultValue;
+  let {
+    allNum,
+    failNum,
+    successNum,
+    successRate,
+    hasAttachment,
+    attachmentName,
+  } = defaultValue;
 
   console.log("\n===========从正文解析===========");
   log.pink(defaultValue);
@@ -181,8 +196,12 @@ async function handleOneSnapshot(content, index) {
         let oneType =
           /(全部合格)|(全部不合格)/.test(content) ||
           successNum === 0 ||
-          failNum === 0;
+          failNum === 0 ||
+          successRate === "100%";
         if (oneType) return 1;
+        if (attachmentName) {
+          return attachmentName.split("|").length;
+        }
         let notEqual = allNum !== failNum || allNum !== successNum;
         return notEqual ? 2 : 1;
       },
@@ -199,8 +218,13 @@ async function handleOneSnapshot(content, index) {
 
   let curIndex = index;
   for (let i = 0; i < rows; i++) {
-
-    await addOneRow({row:i+1, index:curIndex, content, attachmentNum, defaultValue})
+    await addOneRow({
+      row: i + 1,
+      index: curIndex,
+      content,
+      attachmentNum,
+      defaultValue,
+    });
     if (i !== rows - 1) {
       let curId =
         obj[
@@ -226,19 +250,39 @@ async function handleOneSnapshot(content, index) {
   return rows;
 }
 
+function formatTableName(str) {
+  return str.trim().replace(/(:|：)/, "");
+}
+
 function getDefaultValueFromContent(content) {
-  let allNum, failNum, successNum, successRate, hasAttachment;
-  let allRes = content.match(/抽(取|查)(了)?.*?(\d+)批次/);
+  fs.writeFileSync(path.resolve("./tempData/htmlContent"), content);
+  let allNum,
+    failNum,
+    successNum,
+    successRate,
+    hasAttachment,
+    attachmentName,
+    publisher;
+  let publisherRes = content.match(/([^，。；原]+?)(发布|通报)/);
+  if (publisherRes) {
+    publisher = publisherRes[1].trim().replace(/(官网|网站)/, "");
+  }
+  let allRes = content.match(/抽(取|查)(了)?[^，。]*?(\d+)(批次|组)/);
   if (allRes) {
     allNum = Number(allRes[3]);
   }
 
-  let failRes = content.match(/不合格(产品)?(\d+)批次/);
+  let failRes = content.match(/不合格(产品|样品)?(\d+)(批次|组)/);
   if (failRes) {
     failNum = Number(failRes[2]);
+  } else {
+    failRes = content.match(/(\d+)(组|批次)([^，。；]*?)不合格/);
+    if (failRes) {
+      failNum = Number(failRes[1]);
+    }
   }
 
-  let successRes = content.match(/[^不]合格(产品)？(\d+)批次/);
+  let successRes = content.match(/[^不]合格(产品|样品)?(\d+)(批次|组)/);
   if (successRes) {
     successNum = Number(successRes[2]);
   }
@@ -251,29 +295,71 @@ function getDefaultValueFromContent(content) {
   let attachmentRes = content.match(/附件：/);
   if (attachmentRes) {
     hasAttachment = true;
+    let attachmentNameRes = content.match(
+      /附件：(.*?)\.(xlsx|doc|docx|pdf|xls)/
+    );
+    if (attachmentNameRes) {
+      attachmentName = attachmentNameRes[1].replace(/<.*?>/g, "");
+    }
+  } else {
+    let attachmentNameRes;
+    let arr = [];
+    // 情况1：<p>表格名</p><table
+    let reg = />([^<]{1,32})<\/(p|div|strong)><table/g;
+    while ((attachmentNameRes = reg.exec(content))) {
+      console.log("=======push=========", attachmentNameRes[1]);
+      arr.push(formatTableName(attachmentNameRes[1]));
+    }
+    // 情况2：<div><strong>表格名</strong></div><div><table
+    if (!attachmentName) {
+      reg = />([^<]{1,32})(<\/(div|p|strong)>)?<\/(div|p)><div[^>]*?><table/g;
+      while ((attachmentNameRes = reg.exec(content))) {
+        console.log("=======push=========", attachmentNameRes[1]);
+        arr.push(formatTableName(attachmentNameRes[1]));
+      }
+    }
+
+    attachmentName = arr.join("|");
   }
+
   return {
     allNum,
     failNum,
     successNum,
     successRate,
     hasAttachment,
+    attachmentName,
+    publisher,
   };
 }
 
-async function addOneRow({row, index, content, attachmentNum, defaultValue}) {
+async function addOneRow({ row, index, content, attachmentNum, defaultValue }) {
   let obj = json[index];
   console.log(
     `\n===========snapshotId：${
       obj["公告snapshot_id"]
     }第${row}行======${getProgress(index)} ==========`
   );
-  let { allNum, failNum, successNum, successRate } = defaultValue;
+  let {
+    allNum,
+    failNum,
+    successNum,
+    successRate,
+    attachmentName,
+    publisher,
+  } = defaultValue;
+
+  let curAttachmentName = attachmentName;
+  if (attachmentName && attachmentName.indexOf("|") !== -1) {
+    let arr = attachmentName.split("|");
+    curAttachmentName = arr[row - 1];
+  }
 
   let promptConfig = [
     {
       key: "发布主体",
-      when: () => isNoContent(obj, "发布主体"),
+      default: publisher,
+      when: () => isNoContent(obj, "发布主体") && row === 1,
     },
     {
       key: "源文件类型【1-EXCEL，2-PDF，3-WORD，4-HTML，5-jpg】",
@@ -290,18 +376,19 @@ async function addOneRow({row, index, content, attachmentNum, defaultValue}) {
     },
     {
       key: "公布表格表名",
+      default: curAttachmentName,
     },
     {
       key: "公布表格合格条目数【抽检表格条目数】",
       message: "合格数✔️",
-      type:'number',
-      default:  successNum,
+      type: "number",
+      default: successNum,
       when: (answer) => !/(不符合)|(不合格)/.test(answer["公布表格表名"]),
     },
     {
       key: "公布表格不合格条目数【抽检表格条目数】",
       message: "不合格数❌",
-      type:'number',
+      type: "number",
       default: failNum,
       when: (answer) =>
         !/[^不]合格|(^合格)|[^不]符合|(^符合)/.test(answer["公布表格表名"]),
@@ -309,7 +396,7 @@ async function addOneRow({row, index, content, attachmentNum, defaultValue}) {
     {
       key: "公布总抽检批次数",
       default: allNum,
-      type:'number'
+      type: "number",
     },
     {
       key: "公布合格率",
@@ -338,11 +425,12 @@ async function addOneRow({row, index, content, attachmentNum, defaultValue}) {
 
   Object.keys(res).forEach((key) => {
     let val = res[key];
-    if (val !== 0 &&!isNaN(val)) {
+    if (val !== 0 && !isNaN(val)) {
       obj[key] = val;
     }
   });
 
+  console.log(obj);
   if (attachmentNum) {
     obj[
       "公告附件数量（仅填EXCEL、PDF、WORD附件的数量，无附件不需要填）"
@@ -351,11 +439,10 @@ async function addOneRow({row, index, content, attachmentNum, defaultValue}) {
 }
 
 async function login(targetUrl, page) {
-  console.log(targetUrl);
   await page.goto(targetUrl);
   try {
     await page.waitForFunction(() => location.href.indexOf("/login") !== -1, {
-      timeout: 100,
+      timeout: 1000,
     });
     console.log("========需要登录=========");
     // await page.waitForSelector('[placeholder=Username]')
@@ -369,10 +456,13 @@ async function login(targetUrl, page) {
 }
 
 async function inputCode(page) {
-  await page.waitForFunction(() => {
-    let code = document.querySelector("[placeholder=验证码]").value;
-    return code.length === 4;
-  },{timeout:60000});
+  await page.waitForFunction(
+    () => {
+      let code = document.querySelector("[placeholder=验证码]").value;
+      return code.length === 4;
+    },
+    { timeout: 60000 }
+  );
   await page.click("button");
   try {
     await page.waitForFunction(() => location.href.indexOf("/login") === -1, {
@@ -440,7 +530,7 @@ async function start(page) {
     await closeTab(page);
     i += rows;
   }
-  log.green('========== 所有数据处理完毕!!! =============');
+  log.green("========== 所有数据处理完毕!!! =============");
 }
 
 module.exports = start;
