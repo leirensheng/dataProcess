@@ -4,8 +4,8 @@ function formatTableName(str) {
   return str.trim().replace(/(:|：)/, "");
 }
 
-function getDefaultValueFromContent(content, isWriteFile = true, tdAttachment) {
-  fs.writeFileSync(path.resolve("./tempData/htmlContent"), content);
+function getDefaultValueFromContent(content, isWriteFile = true, tdAttachment,innerText) {
+  isWriteFile&&fs.writeFileSync(path.resolve("./tempData/htmlContent"), content);
   let allNum,
     failNum,
     successNum,
@@ -14,49 +14,49 @@ function getDefaultValueFromContent(content, isWriteFile = true, tdAttachment) {
     tdAttachmentNum,
     attachmentName,
     publisher;
-  let publisherRes = content.match(/([^，>。；原]+?局)(官网|网站)?(发布|通报|公布)/);
+  let publisherRes = innerText.match(/([^，>。；原]+?局)(官网|网站)?(发布|通报|公布)/);
   if (publisherRes) {
     publisher = publisherRes[1].trim()
   } else {
-    publisherRes = content.match(/从(原)?([^，>。；]+?局)(官网)?获悉/);
+    publisherRes = innerText.match(/从(原)?([^，>。；]+?局)(官网)?获悉/);
     publisherRes && (publisher = publisherRes[2]);
   }
   // let allRes = content.match(/抽(取|查)(了)?[^，。：]*?(\d+)(个)?(批次|组)/);
-  let allRes = content.match(/抽(取|查|检)(了)?([^，。：]*?)(\d+)(个)?(批次|组)/);
+  let allRes = innerText.match(/抽(取|查|检)(了)?([^，。：]*?)(\d+)(个)?(批次|组)/);
 
   if (allRes) {
     // console.log(allRes[1],allRes[3],allRes[4]);
     allNum = Number(allRes[4]);
   }
 
-  let failRes = content.match(/不合格(产品|样品)?(\d+)(个)?(批次|组)/);
+  let failRes = innerText.match(/不合格(产品|样品)?(\d+)(个)?(批次|组)/);
   if (failRes) {
     failNum = Number(failRes[2]);
   } else {
-    failRes = content.match(/(\d+)(组|批次)([^，。；]*?)不合格/);
+    failRes = innerText.match(/(\d+)(组|批次)([^，。；]*?)不合格/);
     if (failRes) {
       failNum = Number(failRes[1]);
     }
   }
 
-  let successRes = content.match(/[^不]合格(产品|样品)?(\d+)(个)?(批次|组)/);
+  let successRes = innerText.match(/[^不]合格(产品|样品)?(\d+)(个)?(批次|组)/);
   if (successRes) {
     successNum = Number(successRes[2]);
   } else {
-    successRes = content.match(/(\d+)(组|批次)([^，。；不]*?)合格/);
+    successRes = innerText.match(/(\d+)(组|批次)([^，。；不]*?)合格/);
     successRes && (successNum = Number(successRes[1]));
     //  console.log(successRes);
   }
 
-  let successRateRes = content.match(/[^不]合格率(为)?((\d|\.)+(%|％))/);
+  let successRateRes = innerText.match(/[^不]合格率(为)?((\d|\.)+(%|％))/);
   if (successRateRes) {
     successRate = successRateRes[2];
   }
 
-  let attachmentRes = content.match(/附件：/);
+  let attachmentRes = innerText.match(/附件：/);
   if (attachmentRes) {
     hasAttachment = true;
-    let attachmentNameRes = content.match(
+    let attachmentNameRes = innerText.match(
       /附件：(.*?)\.(xlsx|doc|docx|pdf|xls)/
     );
     if (attachmentNameRes) {

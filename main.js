@@ -12,13 +12,14 @@ let getDefaultValueFromContent = require('./getDefaultValueFromContent')
 let outputNewSheet = require('./generateExcel')
 
 async function getContent(page) {
+  let obj={}
   try {
     await page.waitForSelector(".article-content", { timeout: 5000 });
     await page.waitForFunction(() => {
       let dom = document.querySelector(".article-content");
       return dom.innerHTML;
     });
-    content = await page.$eval(".article-content", (el) => {
+    obj = await page.$eval(".article-content", (el) => {
       let str = el.innerHTML;
       // 去掉回车
       str = str.replace(/\n/g, "");
@@ -29,14 +30,20 @@ async function getContent(page) {
       );
       // 去掉注释
       str=str.replace(/<!--.*?-->/g,'')
-      return str;
+      return {
+        content:str,
+        innerText: el.innerText
+      }
     });
   } catch (e) {
-    content = "";
+    obj = {
+      content:'',
+      innerText:''
+    };
   }
   let tdAttachment = await page.$eval('tr:nth-child(3) td:nth-child(2)',el=>el.innerText)
   console.log('=====表格中的======',tdAttachment);
-  return {content,tdAttachment};
+  return {...obj,tdAttachment};
 }
 
 function getHasHandleIndex() {
@@ -123,6 +130,7 @@ function removeSubRows(obj, index) {
 }
 
 function checkDuplicate(obj,index) {
+  if(index===0)return false
   let preSnap = json[index-1]
   if (obj["公告标题"] === preSnap["公告标题"]) {
     obj[
@@ -139,7 +147,7 @@ function addHandler(obj) {
   obj["处理时间"] = utils.formatDate(new Date());
 }
 
-async function handleOneSnapshot(content, index,tdAttachment) {
+async function handleOneSnapshot(content, index,tdAttachment,innerText) {
   let obj = json[index];
 
   console.log(
@@ -166,7 +174,7 @@ async function handleOneSnapshot(content, index,tdAttachment) {
   let startTime = Date.now();
 
   let template = { ...obj };
-  let defaultValue = getDefaultValueFromContent(content, true,tdAttachment);
+  let defaultValue = getDefaultValueFromContent(content, true,tdAttachment,innerText);
   let {
     allNum,
     failNum,
@@ -362,7 +370,7 @@ async function login(targetUrl, page) {
   await page.goto(targetUrl);
   try {
     await page.waitForFunction(() => location.href.indexOf("/login") !== -1, {
-      timeout: 1000,
+      timeout: config.loginTimeout,
     });
     console.log("========需要登录=========");
     // await page.waitForSelector('[placeholder=Username]')
@@ -437,8 +445,8 @@ async function start(page) {
         obj["公告snapshot_id"]
     );
 
-    let {content,tdAttachment} = await getContent(page);
-    let rows = await handleOneSnapshot(content, i,tdAttachment);
+    let {content,tdAttachment,innerText} = await getContent(page);
+    let rows = await handleOneSnapshot(content, i,tdAttachment,innerText);
 
     config.index = i + rows;
     config.lastId =

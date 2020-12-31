@@ -8,6 +8,7 @@
         "width": 1250,
         "height": 900
     },
+    "loginTimeout":1000,
     "origin": "http://ssl.gdcers.com",
     "userInfo": {
         "handler": "雷任胜",
