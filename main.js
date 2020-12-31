@@ -9,13 +9,7 @@ let startIndex = config.index;
 let utils = require("./utils");
 const chalk = require("chalk");
 let getDefaultValueFromContent = require('./getDefaultValueFromContent')
-
-function outputNewSheet(res) {
-  const wb = XLSX.utils.book_new();
-  const sheet = XLSX.utils.json_to_sheet(res);
-  XLSX.utils.book_append_sheet(wb, sheet, config.sheetName);
-  XLSX.writeFile(wb, path.resolve(__dirname, "./output.xlsx"));
-}
+let outputNewSheet = require('./generateExcel')
 
 async function getContent(page) {
   try {
@@ -48,7 +42,8 @@ async function getContent(page) {
 function getHasHandleIndex() {
   let i = 0;
   let obj = json[i];
-  while (obj["处理人"]) {
+  while (obj&&obj["处理人"]) {
+    console.log(i);
     i++;
     obj = json[i];
   }
@@ -63,10 +58,12 @@ function save() {
   fs.writeFileSync(path.resolve("./excel.json"), JSON.stringify(json, null, 4));
   try {
     let handledIndex = getHasHandleIndex();
-    let jsonForExcel = JSON.parse(JSON.stringify(json.slice(0, handledIndex)));
+    let jsonForExcel = JSON.parse(JSON.stringify(json.slice(0, handledIndex+1)));
     jsonForExcel.forEach((one, index) => (one.index = index));
-    outputNewSheet(jsonForExcel);
+    console.log(handledIndex);
+    outputNewSheet(jsonForExcel,config);
   } catch (e) {
+    console.log(e);
     log.yellow(
       `\n========文件已经打开，未能写入成功，下次保存数据写入!==========`
     );
@@ -93,10 +90,11 @@ function getProgress(index) {
 }
 
 function getSameSnapshotIdRows(index) {
-  let snapshotId = json[index]["公告snapshot_id"];
+   let snapshotId = json[index]["公告snapshot_id"];
   let i = 1;
   let curIndex = index + 1;
   let obj = json[curIndex];
+  if(!obj) return i
   while (obj["公告snapshot_id"] === snapshotId) {
     i++;
     curIndex++;
@@ -224,7 +222,7 @@ async function handleOneSnapshot(content, index,tdAttachment) {
     });
     if (i !== rows - 1) {
       let curId =
-        obj[
+        json[curIndex][
           "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
         ];
       let newId = curId + 0.01;
