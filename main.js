@@ -42,7 +42,6 @@ async function getContent(page) {
     };
   }
   let tdAttachment = await page.$eval('tr:nth-child(3) td:nth-child(2)',el=>el.innerText)
-  // console.log('=====表格中的======',tdAttachment);
   return {...obj,tdAttachment};
 }
 
@@ -69,9 +68,7 @@ function save() {
     outputNewSheet(jsonForExcel,config);
   } catch (e) {
     console.log(e);
-    log.yellow(
-      `\n========文件已经打开，未能写入成功，下次保存数据写入!==========`
-    );
+    log.yellow('文件已经打开，未能写入成功，下次保存数据写入!');
   }
 }
 
@@ -89,7 +86,7 @@ function isNoContent(obj, key) {
 }
 
 function getProgress(index) {
-  return `进度：${index}/${json.length}≈${((index / json.length) * 100).toFixed(
+  return `【进度】${index}/${json.length}≈${((index / json.length) * 100).toFixed(
     2
   )}%`;
 }
@@ -110,7 +107,7 @@ function getSameSnapshotIdRows(index) {
 
 
 function removeSubRows(obj, index) {
-  log.pink("===================当前处于编辑模式==========================");
+  log.pink("当前处于编辑模式");
   let id =
     obj[
       "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
@@ -121,7 +118,6 @@ function removeSubRows(obj, index) {
   } else {
     let sameSnapshotIdRows = getSameSnapshotIdRows(index);
     if (sameSnapshotIdRows !== 1) {
-      // console.log(`=======删除${sameSnapshotIdRows - 1}条=========`);
       json.splice(index + 1, sameSnapshotIdRows - 1);
     }
   }
@@ -134,7 +130,7 @@ function checkDuplicate(obj,index) {
     obj[
       "备注（缺少表格的，需要注明表格）"
     ] = `与${preSnap["公告snapshot_id"]}重复`;
-    log.yellow(`========与${preSnap["公告snapshot_id"]}重复==========`);
+    log.yellow(`与${preSnap["公告snapshot_id"]}重复`);
     return true;
   }
   return false;
@@ -148,12 +144,12 @@ function addHandler(obj) {
 async function handleOneSnapshot(content, index,tdAttachment,innerText) {
   let obj = json[index];
 
-  console.log(
-    `\n========snapshotId：${obj["公告snapshot_id"]}====${getProgress(
+  log(
+    `【snapshotId】${obj["公告snapshot_id"]}====${getProgress(
       index
-    )} ====================`
+    )}`
   );
-  log.green(obj);
+  log.yellow(obj);
 
   let isEdit = obj["处理人"];
   // 编辑的时候不考虑和上一条重复与否
@@ -183,7 +179,7 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
     tdAttachmentNum
   } = defaultValue;
 
-  console.log("\n===========从正文解析===========");
+  log("从正文解析");
   log.pink(defaultValue);
   const { rows, attachmentNum } = await inquirer.prompt([
     {
@@ -245,10 +241,12 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
   }
   let useTime = (Date.now() - startTime) / 1000;
 
-  console.log(
-    `========================${chalk.green("✅")}${
+  log('【处理结果】')
+  log.green(obj)
+  log(
+    `${chalk.green("✅")}${
       obj["公告snapshot_id"]
-    }，用时${useTime}秒 =================================`
+    }，用时${useTime}秒`
   );
   return rows;
 }
@@ -259,10 +257,10 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
 
 async function addOneRow({ row, index, content, attachmentNum, defaultValue }) {
   let obj = json[index];
-  console.log(
-    `\n===========snapshotId：${
+  log(
+    `【snapshotId】${
       obj["公告snapshot_id"]
-    }第${row}行======${getProgress(index)} ==========`
+    }第${row}行======${getProgress(index)}`
   );
   let {
     allNum,
@@ -356,7 +354,6 @@ async function addOneRow({ row, index, content, attachmentNum, defaultValue }) {
     }
   });
 
-  console.log(obj);
   if (attachmentNum) {
     obj[
       "公告附件数量（仅填EXCEL、PDF、WORD附件的数量，无附件不需要填）"
@@ -370,14 +367,14 @@ async function login(targetUrl, page) {
     await page.waitForFunction(() => location.href.indexOf("/login") !== -1, {
       timeout: config.loginTimeout,
     });
-    console.log("========需要登录=========");
+    log("需要登录");
     // await page.waitForSelector('[placeholder=Username]')
     await page.type("[placeholder=Username]", config.userInfo.username);
     await page.type("[type=password]", config.userInfo.password);
-    console.log("========请在页面输入验证码=========");
+    log('请在页面输入验证码');
     await inputCode(page);
   } catch (e) {
-    console.log("========不需要登录=========");
+    log('不需要登录')
   }
 }
 
@@ -395,7 +392,7 @@ async function inputCode(page) {
       timeout: 500,
     });
   } catch (e) {
-    log.red("===========验证码错误============");
+    log.red('验证码错误');
     await page.$eval("[placeholder=验证码]", (el) => (el.value = ""));
     await inputCode(page);
   }
@@ -456,7 +453,7 @@ async function start(page) {
     await closeTab(page);
     i += rows;
   }
-  log.green("========== 所有数据处理完毕!!! =============");
+  log.green("所有数据处理完毕!!!");
 }
 
 module.exports = start;

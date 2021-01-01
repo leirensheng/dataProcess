@@ -1,12 +1,28 @@
-const chalk = require('chalk');
+const chalk = require("chalk");
+const { getNameLength } = require("./utils");
 
-const log = console.log
+const handleLog = (val) => {
+  let nameLength = getNameLength(val);
+  let template = "=";
+  let oneNum = Math.ceil((80 - nameLength) / 2);
+  let oneStr = Array.from({ length: oneNum }, () => template).join("");
+  return "\n" + oneStr + val + oneStr;
+};
 
+const log = (val) => {
+  let str = handleLog(val);
+  console.log(str);
+};
 
+let arr = ["red", "green", "yellow", "pink"];
 
-log.green =(val)=>{log(chalk.green(typeof val==='object'?JSON.stringify(val,null,4):val))} 
-log.red =(val)=>{log(chalk.red(typeof val==='object'?JSON.stringify(val,null,4):val))} 
-log.yellow =(val)=>{log(chalk.yellow(typeof val==='object'?JSON.stringify(val,null,4):val))} 
-log.pink =(val)=>{log(chalk.magentaBright(typeof val==='object'?JSON.stringify(val,null,4):val))} 
-
-module.exports = log
+arr.forEach((color) => {
+  log[color] = (val) => {
+    let realColor = color;
+    let str =
+      typeof val === "object" ? JSON.stringify(val, null, 4) : handleLog(val);
+    if (color === "pink") realColor = "magentaBright";
+    console.log(chalk[realColor](str));
+  };
+});
+module.exports = log;
