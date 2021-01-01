@@ -42,7 +42,7 @@ async function getContent(page) {
     };
   }
   let tdAttachment = await page.$eval('tr:nth-child(3) td:nth-child(2)',el=>el.innerText)
-  console.log('=====表格中的======',tdAttachment);
+  // console.log('=====表格中的======',tdAttachment);
   return {...obj,tdAttachment};
 }
 
@@ -50,7 +50,6 @@ function getHasHandleIndex() {
   let i = 0;
   let obj = json[i];
   while (obj&&obj["处理人"]) {
-    console.log(i);
     i++;
     obj = json[i];
   }
@@ -67,7 +66,6 @@ function save() {
     let handledIndex = getHasHandleIndex();
     let jsonForExcel = JSON.parse(JSON.stringify(json.slice(0, handledIndex+1)));
     jsonForExcel.forEach((one, index) => (one.index = index));
-    console.log(handledIndex);
     outputNewSheet(jsonForExcel,config);
   } catch (e) {
     console.log(e);
@@ -418,7 +416,7 @@ function formatId(arr) {
 async function getExcelJson() {
   let readFromExcel = !fs.existsSync(path.resolve("./excel.json"));
   if (readFromExcel) {
-    const filepath = path.resolve(__dirname, "./tempData", config.fileName);
+    const filepath = path.resolve(config.fileName);
     const workbook = XLSX.readFile(filepath);
     const { Sheets } = workbook;
     const res = XLSX.utils.sheet_to_json(Sheets[config.sheetName], {

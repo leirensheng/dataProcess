@@ -3,7 +3,18 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "bin": "index.js",
+  "pkg": {
+    "targets": [
+      "node12-win-x64"
+    ],
+    "scripts": [
+      " node_modules/lighthouse/node_modules/open/xdg-open",
+      "./node_modules/carlo/lib/find_chrome.js"
+    ]
+  },
   "scripts": {
+    "pkg": "pkg .  --out-path=dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,6 +25,7 @@
     "chrome-launcher": "^0.13.4",
     "inquirer": "^7.3.3",
     "lighthouse": "^6.4.1",
+    "pkg": "^4.4.9",
     "puppeteer-core": "^5.4.1",
     "xlsx": "^0.16.9"
   }

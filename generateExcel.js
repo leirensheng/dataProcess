@@ -37,7 +37,7 @@ function outputNewSheet(res,config) {
   const wb = XLSX.utils.book_new();
   const sheet = XLSX.utils.json_to_sheet(res);
   XLSX.utils.book_append_sheet(wb, sheet, config.sheetName);
-  XLSX.writeFile(wb, path.resolve(__dirname, "./output.xlsx"));
+  XLSX.writeFile(wb, path.resolve("./output.xlsx"));
 }
 
 module.exports =outputNewSheet
