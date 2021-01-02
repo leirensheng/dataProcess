@@ -18,10 +18,10 @@ async function init() {
   });
   const page = await browser.newPage();
   await page.setRequestInterception(true);
-  // page.on("request", (request) => {
-  //   if ([""].includes(request.resourceType())) request.abort();
-  //   else request.continue();
-  // });
+  page.on("request", (request) => {
+    if ([""].includes(request.resourceType())) request.abort();
+    else request.continue();
+  });
   // page.on("console", (msg) => {
   //   for (let i = 0; i < msg.args().length; ++i)
   //     console.log(`-----浏览器输出------: ${msg.args()[i]}`);

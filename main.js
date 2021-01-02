@@ -389,7 +389,7 @@ async function inputCode(page) {
   await page.click("button");
   try {
     await page.waitForFunction(() => location.href.indexOf("/login") === -1, {
-      timeout: 500,
+      timeout: 1000,
     });
   } catch (e) {
     log.red('验证码错误');

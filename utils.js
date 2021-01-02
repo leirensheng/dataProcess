@@ -5,7 +5,7 @@ module.exports = {
   getNameLength(name) {
     let length = 0
     for (let i = 0; i < name.length; i++) {
-      const isChinese = /[\u4e00-\u9fa5]|（|）|；|，|。/.test(name[i])
+      const isChinese = /[\u4e00-\u9fa5]|（|）|；|，|。|【|】/.test(name[i])
       length += isChinese ? 2 : 1
     }
     return length
