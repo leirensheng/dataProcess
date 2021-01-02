@@ -239,7 +239,8 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
   let useTime = (Date.now() - startTime) / 1000;
 
   log('【处理结果】')
-  log.green(obj)
+  let res = json.slice(index,curIndex+1)
+  log.green(res)
   log(
     `${chalk.green("✅")}${
       obj["公告snapshot_id"]
