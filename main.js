@@ -10,6 +10,7 @@ let utils = require("./utils");
 const chalk = require("chalk");
 let getDefaultValueFromContent = require('./getDefaultValueFromContent')
 let outputNewSheet = require('./generateExcel')
+let keyMap = require('./keyMap')
 
 async function getContent(page) {
   let obj={}
@@ -109,9 +110,7 @@ function getSameSnapshotIdRows(index) {
 function removeSubRows(obj, index) {
   log.pink("当前处于编辑模式");
   let id =
-    obj[
-      "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
-    ];
+    obj[keyMap['表格id']];
   let arr = String(id).split(".");
   if (arr.length === 2) {
     throw new Error("当前index不对");
@@ -127,9 +126,7 @@ function checkDuplicate(obj,index) {
   if(index===0)return false
   let preSnap = json[index-1]
   if (obj["公告标题"] === preSnap["公告标题"]) {
-    obj[
-      "备注（缺少表格的，需要注明表格）"
-    ] = `与${preSnap["公告snapshot_id"]}重复`;
+    obj[keyMap['备注']] = `与${preSnap["公告snapshot_id"]}重复`;
     log.yellow(`与${preSnap["公告snapshot_id"]}重复`);
     return true;
   }
@@ -226,16 +223,14 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
     });
     if (i !== rows - 1) {
       let curId =
-        json[curIndex][
-          "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
-        ];
+        json[curIndex][keyMap['表格id']];
       let newId = curId + 0.01;
       let newObj = {
         ...template,
         '公布总抽检批次数':obj['公布总抽检批次数'],
         '公布合格率':obj['公布合格率'],
         发布主体: obj["发布主体"],
-        "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）": newId,
+        [keyMap['表格id']]: newId,
       };
       curIndex++;
       json.splice(curIndex, 0, newObj);
@@ -414,8 +409,7 @@ async function inputCode(page) {
 
 function formatId(arr) {
   for (let i = 0; i < arr.length; i++) {
-    let key =
-      "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）";
+    let key = keyMap['表格id'];
     let obj = arr[i];
     let id = obj[key];
     if (typeof id === "string") {
@@ -459,9 +453,7 @@ async function start(page) {
 
     config.index = i + rows;
     config.lastId =
-      json[i][
-        "表格id（如有多个附件，请插入1行，在原表格id上加.1,如1.1,1.2，不要合并任何单元格）"
-      ];
+      json[i][keyMap['表格id']];
     config.lastSnapshotId = json[i]["公告snapshot_id"];
     save();
     await closeTab(page);
