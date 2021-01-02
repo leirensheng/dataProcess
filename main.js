@@ -202,13 +202,14 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
         let notEqual = allNum !== failNum || allNum !== successNum;
         return notEqual ? 2 : 1;
       },
-      // validate:(val)=> typeof val === 'number',
-      message: "当前公告有多少行？",
+      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
+      message: "当前公告在excel中会有多少行？",
     },
     {
       type: "number",
       name: "attachmentNum",
-      default: () => (hasAttachment ? tdAttachmentNum||1 : 0),
+      default: () => (hasAttachment ? (tdAttachmentNum||1) : 0),
+      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
       message: "附件数量✉️",
     },
   ]);
@@ -221,6 +222,7 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
       content,
       attachmentNum,
       defaultValue,
+      rows
     });
     if (i !== rows - 1) {
       let curId =
@@ -255,13 +257,15 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
 
 
 
-async function addOneRow({ row, index, content, attachmentNum, defaultValue }) {
+async function addOneRow({ row, index, content, attachmentNum, defaultValue,rows }) {
   let obj = json[index];
-  log(
-    `【snapshotId】${
-      obj["公告snapshot_id"]
-    }第${row}行======${getProgress(index)}`
-  );
+  if(rows>1){
+    log(
+      `【snapshotId】${
+        obj["公告snapshot_id"]
+      }第${row}行======${getProgress(index)}`
+    );
+  }
   let {
     allNum,
     failNum,
@@ -306,12 +310,15 @@ async function addOneRow({ row, index, content, attachmentNum, defaultValue }) {
       type: "number",
       default: successNum,
       when: (answer) => !/(不符合)|(不合格)/.test(answer["公布表格表名"]),
+      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
+
     },
     {
       key: "公布表格不合格条目数【抽检表格条目数】",
       message: "不合格数❌",
       type: "number",
       default: failNum,
+      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
       when: (answer) =>
         !/[^不]合格|(^合格)|[^不]符合|(^符合)/.test(answer["公布表格表名"]),
     },
@@ -319,19 +326,26 @@ async function addOneRow({ row, index, content, attachmentNum, defaultValue }) {
       key: "公布总抽检批次数",
       default: row===1? allNum: obj['公布总抽检批次数'],
       type: "number",
+      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
     },
     {
       key: "公布合格率",
       default: row===1? successRate: obj['公布合格率'],
       when: content.indexOf('合格率')!==-1,
+      validate: val=> val.match(/(\d+)(\.(\d)+)?%/)?true:'请输入百分数！（按⬆重新输入）'
     },
     {
       key: "备注（缺少表格的，需要注明表格）",
       default: answer=> !answer['公布表格表名']&&!attachmentNum ?'无表格':'',
     },
     {
-      key: "是否存在合并单元格(1-是，2-否)",
+      key: "是否存在合并单元格",
+      type:'rawlist',
       default: "2",
+      choices: [
+        { name: "是", value: "1" },
+        { name: "否", value: "2" },
+      ],
     },
   ];
 
