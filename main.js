@@ -8,12 +8,12 @@ let config = JSON.parse(fs.readFileSync("./config.json"));
 let startIndex = config.index;
 let utils = require("./utils");
 const chalk = require("chalk");
-let getDefaultValueFromContent = require('./getDefaultValueFromContent')
-let outputNewSheet = require('./generateExcel')
-let keyMap = require('./keyMap')
+let getDefaultValueFromContent = require("./getDefaultValueFromContent");
+let outputNewSheet = require("./generateExcel");
+let keyMap = require("./keyMap");
 
 async function getContent(page) {
-  let obj={}
+  let obj = {};
   try {
     await page.waitForSelector(".article-content", { timeout: 5000 });
     await page.waitForFunction(() => {
@@ -30,26 +30,29 @@ async function getContent(page) {
         ""
       );
       // 去掉注释
-      str=str.replace(/<!--.*?-->/g,'')
+      str = str.replace(/<!--.*?-->/g, "");
       return {
-        content:str,
-        innerText: el.innerText
-      }
+        content: str,
+        innerText: el.innerText,
+      };
     });
   } catch (e) {
     obj = {
-      content:'',
-      innerText:''
+      content: "",
+      innerText: "",
     };
   }
-  let tdAttachment = await page.$eval('tr:nth-child(3) td:nth-child(2)',el=>el.innerText)
-  return {...obj,tdAttachment};
+  let tdAttachment = await page.$eval(
+    "tr:nth-child(3) td:nth-child(2)",
+    (el) => el.innerText
+  );
+  return { ...obj, tdAttachment };
 }
 
 function getHasHandleNextIndex() {
   let i = 0;
   let obj = json[i];
-  while (obj&&obj["处理人"]) {
+  while (obj && obj["处理人"]) {
     i++;
     obj = json[i];
   }
@@ -64,12 +67,14 @@ function save() {
   fs.writeFileSync(path.resolve("./excel.json"), JSON.stringify(json, null, 4));
   try {
     let handledNextIndex = getHasHandleNextIndex();
-    let jsonForExcel = JSON.parse(JSON.stringify(json.slice(0, handledNextIndex)));
+    let jsonForExcel = JSON.parse(
+      JSON.stringify(json.slice(0, handledNextIndex))
+    );
     jsonForExcel.forEach((one, index) => (one.index = index));
-    outputNewSheet(jsonForExcel,config);
+    outputNewSheet(jsonForExcel, config);
   } catch (e) {
     console.log(e);
-    log.yellow('文件已经打开，未能写入成功，下次保存数据写入!');
+    log.yellow("文件已经打开，未能写入成功，下次保存数据写入!");
   }
 }
 
@@ -87,17 +92,18 @@ function isNoContent(obj, key) {
 }
 
 function getProgress(index) {
-  return `【进度】${index}/${json.length}≈${((index / json.length) * 100).toFixed(
-    2
-  )}%`;
+  return `【进度】${index}/${json.length}≈${(
+    (index / json.length) *
+    100
+  ).toFixed(2)}%`;
 }
 
 function getSameSnapshotIdRows(index) {
-   let snapshotId = json[index]["公告snapshot_id"];
+  let snapshotId = json[index]["公告snapshot_id"];
   let i = 1;
   let curIndex = index + 1;
   let obj = json[curIndex];
-  if(!obj) return i
+  if (!obj) return i;
   while (obj["公告snapshot_id"] === snapshotId) {
     i++;
     curIndex++;
@@ -106,11 +112,9 @@ function getSameSnapshotIdRows(index) {
   return i;
 }
 
-
 function removeSubRows(obj, index) {
   log.pink("当前处于编辑模式");
-  let id =
-    obj[keyMap['表格id']];
+  let id = obj[keyMap["表格id"]];
   let arr = String(id).split(".");
   if (arr.length === 2) {
     throw new Error("当前index不对");
@@ -122,11 +126,11 @@ function removeSubRows(obj, index) {
   }
 }
 
-function checkDuplicate(obj,index) {
-  if(index===0)return false
-  let preSnap = json[index-1]
+function checkDuplicate(obj, index) {
+  if (index === 0) return false;
+  let preSnap = json[index - 1];
   if (obj["公告标题"] === preSnap["公告标题"]) {
-    obj[keyMap['备注']] = `与${preSnap["公告snapshot_id"]}重复`;
+    obj[keyMap["备注"]] = `与${preSnap["公告snapshot_id"]}重复`;
     log.yellow(`与${preSnap["公告snapshot_id"]}重复`);
     return true;
   }
@@ -138,14 +142,10 @@ function addHandler(obj) {
   obj["处理时间"] = utils.formatDate(new Date());
 }
 
-async function handleOneSnapshot(content, index,tdAttachment,innerText) {
+async function handleOneSnapshot(content, index, tdAttachment, innerText) {
   let obj = json[index];
 
-  log(
-    `【snapshotId】${obj["公告snapshot_id"]}====${getProgress(
-      index
-    )}`
-  );
+  log(`【snapshotId】${obj["公告snapshot_id"]}====${getProgress(index)}`);
   log.yellow(obj);
 
   let isEdit = obj["处理人"];
@@ -165,7 +165,12 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
   let startTime = Date.now();
 
   let template = { ...obj };
-  let defaultValue = getDefaultValueFromContent(content, true,tdAttachment,innerText);
+  let defaultValue = getDefaultValueFromContent(
+    content,
+    true,
+    tdAttachment,
+    innerText
+  );
   let {
     allNum,
     failNum,
@@ -173,7 +178,7 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
     successRate,
     hasAttachment,
     attachmentName,
-    tdAttachmentNum
+    tdAttachmentNum,
   } = defaultValue;
 
   log("从正文解析");
@@ -183,8 +188,8 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
       type: "number",
       name: "rows",
       default: () => {
-        if(tdAttachmentNum){
-          return tdAttachmentNum
+        if (tdAttachmentNum) {
+          return tdAttachmentNum;
         }
         if (attachmentName) {
           return attachmentName.split("|").length;
@@ -199,14 +204,14 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
         let notEqual = allNum !== failNum || allNum !== successNum;
         return notEqual ? 2 : 1;
       },
-      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
+      validate: (val) => (isNaN(val) ? "请输入数字！（按⬆重新输入）" : true),
       message: "当前公告在excel中会有多少行？",
     },
     {
       type: "number",
       name: "attachmentNum",
-      default: () => (hasAttachment ? (tdAttachmentNum||1) : 0),
-      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
+      default: () => (hasAttachment ? tdAttachmentNum || 1 : 0),
+      validate: (val) => (isNaN(val) ? "请输入数字！（按⬆重新输入）" : true),
       message: "附件数量✉️",
     },
   ]);
@@ -219,18 +224,17 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
       content,
       attachmentNum,
       defaultValue,
-      rows
+      rows,
     });
     if (i !== rows - 1) {
-      let curId =
-        json[curIndex][keyMap['表格id']];
+      let curId = json[curIndex][keyMap["表格id"]];
       let newId = curId + 0.01;
       let newObj = {
         ...template,
-        '公布总抽检批次数':obj['公布总抽检批次数'],
-        '公布合格率':obj['公布合格率'],
+        公布总抽检批次数: obj["公布总抽检批次数"],
+        公布合格率: obj["公布合格率"],
         发布主体: obj["发布主体"],
-        [keyMap['表格id']]: newId,
+        [keyMap["表格id"]]: newId,
       };
       curIndex++;
       json.splice(curIndex, 0, newObj);
@@ -238,28 +242,27 @@ async function handleOneSnapshot(content, index,tdAttachment,innerText) {
   }
   let useTime = (Date.now() - startTime) / 1000;
 
-  log('【处理结果】')
-  let res = json.slice(index,curIndex+1)
-  log.green(res)
-  log(
-    `${chalk.green("✅")}${
-      obj["公告snapshot_id"]
-    }，用时${useTime}秒`
-  );
+  log("【处理结果】");
+  let res = json.slice(index, curIndex + 1);
+  log.green(res);
+  log(`${chalk.green("✅")}${obj["公告snapshot_id"]}，用时${useTime}秒`);
   return rows;
 }
 
-
-
-
-
-async function addOneRow({ row, index, content, attachmentNum, defaultValue,rows }) {
+async function addOneRow({
+  row,
+  index,
+  content,
+  attachmentNum,
+  defaultValue,
+  rows,
+}) {
   let obj = json[index];
-  if(rows>1){
+  if (rows > 1) {
     log(
-      `【snapshotId】${
-        obj["公告snapshot_id"]
-      }第${row}行======${getProgress(index)}`
+      `【snapshotId】${obj["公告snapshot_id"]}第${row}行======${getProgress(
+        index
+      )}`
     );
   }
   let {
@@ -306,37 +309,38 @@ async function addOneRow({ row, index, content, attachmentNum, defaultValue,rows
       type: "number",
       default: successNum,
       when: (answer) => !/(不符合)|(不合格)/.test(answer["公布表格表名"]),
-      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
-
+      validate: (val) => (isNaN(val) ? "请输入数字！（按⬆重新输入）" : true),
     },
     {
       key: "公布表格不合格条目数【抽检表格条目数】",
       message: "不合格数❌",
       type: "number",
       default: failNum,
-      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
+      validate: (val) => (isNaN(val) ? "请输入数字！（按⬆重新输入）" : true),
       when: (answer) =>
         !/[^不]合格|(^合格)|[^不]符合|(^符合)/.test(answer["公布表格表名"]),
     },
     {
       key: "公布总抽检批次数",
-      default: row===1? allNum: obj['公布总抽检批次数'],
+      default: row === 1 ? allNum : obj["公布总抽检批次数"],
       type: "number",
-      validate: val=> isNaN(val)?'请输入数字！（按⬆重新输入）':true,
+      validate: (val) => (isNaN(val) ? "请输入数字！（按⬆重新输入）" : true),
     },
     {
       key: "公布合格率",
-      default: row===1? successRate: obj['公布合格率'],
-      when: content.indexOf('合格率')!==-1,
-      validate: val=> val.match(/(\d+)(\.(\d)+)?%/)?true:'请输入百分数！（按⬆重新输入）'
+      default: row === 1 ? successRate : obj["公布合格率"],
+      when: content.indexOf("合格率") !== -1,
+      validate: (val) =>
+        val.match(/(\d+)(\.(\d)+)?%/) ? true : "请输入百分数！（按⬆重新输入）",
     },
     {
       key: "备注（缺少表格的，需要注明表格）",
-      default: answer=> !answer['公布表格表名']&&!attachmentNum ?'无表格':'',
+      default: (answer) =>
+        !answer["公布表格表名"] && !attachmentNum ? "无表格" : "",
     },
     {
       key: "是否存在合并单元格",
-      type:'rawlist',
+      type: "rawlist",
       default: "2",
       choices: [
         { name: "是", value: "1" },
@@ -359,7 +363,7 @@ async function addOneRow({ row, index, content, attachmentNum, defaultValue,rows
   Object.keys(res).forEach((key) => {
     let val = res[key];
     // 剔除NaN
-    if ( val !== 0 && val===val) {
+    if (val !== 0 && val === val) {
       obj[key] = val;
     }
   });
@@ -381,10 +385,10 @@ async function login(targetUrl, page) {
     // await page.waitForSelector('[placeholder=Username]')
     await page.type("[placeholder=Username]", config.userInfo.username);
     await page.type("[type=password]", config.userInfo.password);
-    log('请在页面输入验证码');
+    log("请在页面输入验证码");
     await inputCode(page);
   } catch (e) {
-    log('不需要登录')
+    log("不需要登录");
   }
 }
 
@@ -402,7 +406,7 @@ async function inputCode(page) {
       timeout: 1000,
     });
   } catch (e) {
-    log.red('验证码错误');
+    log.red("验证码错误");
     await page.$eval("[placeholder=验证码]", (el) => (el.value = ""));
     await inputCode(page);
   }
@@ -410,7 +414,7 @@ async function inputCode(page) {
 
 function formatId(arr) {
   for (let i = 0; i < arr.length; i++) {
-    let key = keyMap['表格id'];
+    let key = keyMap["表格id"];
     let obj = arr[i];
     let id = obj[key];
     if (typeof id === "string") {
@@ -441,6 +445,9 @@ async function start(page) {
   let targetUrl = config.origin + "/dc-admin#/inspection/spiderArticle/list";
   await login(targetUrl, page);
   json = await getExcelJson();
+  if (json.length < startIndex) {
+    throw new Error("输入的index对应的数据不存在，请检查输入的index");
+  }
   for (let i = startIndex; i < json.length; ) {
     let obj = json[i];
     await page.goto(
@@ -449,12 +456,11 @@ async function start(page) {
         obj["公告snapshot_id"]
     );
 
-    let {content,tdAttachment,innerText} = await getContent(page);
-    let rows = await handleOneSnapshot(content, i,tdAttachment,innerText);
+    let { content, tdAttachment, innerText } = await getContent(page);
+    let rows = await handleOneSnapshot(content, i, tdAttachment, innerText);
 
     config.index = i + rows;
-    config.lastId =
-      json[i][keyMap['表格id']];
+    config.lastId = json[i][keyMap["表格id"]];
     config.lastSnapshotId = json[i]["公告snapshot_id"];
     save();
     await closeTab(page);
