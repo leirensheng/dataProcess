@@ -46,7 +46,7 @@ async function getContent(page) {
   return {...obj,tdAttachment};
 }
 
-function getHasHandleIndex() {
+function getHasHandleNextIndex() {
   let i = 0;
   let obj = json[i];
   while (obj&&obj["处理人"]) {
@@ -63,8 +63,8 @@ function save() {
   );
   fs.writeFileSync(path.resolve("./excel.json"), JSON.stringify(json, null, 4));
   try {
-    let handledIndex = getHasHandleIndex();
-    let jsonForExcel = JSON.parse(JSON.stringify(json.slice(0, handledIndex+1)));
+    let handledNextIndex = getHasHandleNextIndex();
+    let jsonForExcel = JSON.parse(JSON.stringify(json.slice(0, handledNextIndex)));
     jsonForExcel.forEach((one, index) => (one.index = index));
     outputNewSheet(jsonForExcel,config);
   } catch (e) {
