@@ -36,7 +36,6 @@ function handleOrder(res) {
   let newRes=[]
   res.forEach(obj=>{
     let newObj =keys.reduce((prev,cur)=>{
-      console.log(cur);
       if(obj[cur]!==undefined){
         prev[cur] = obj[cur]
       }else{
