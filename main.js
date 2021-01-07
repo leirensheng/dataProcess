@@ -74,7 +74,7 @@ function save() {
     outputNewSheet(jsonForExcel, config);
   } catch (e) {
     console.log(e);
-    log.yellow("文件已经打开，未能写入成功，下次保存数据写入!");
+    log.yellow("文件已打开，未写入成功，请关闭output.xlsx，继续录入下一条，录完下一条会补写进去");
   }
 }
 
