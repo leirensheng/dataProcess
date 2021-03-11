@@ -3,7 +3,6 @@ let log = require("./log");
 const fs = require("fs");
 const path = require("path");
 const inquirer = require("inquirer");
-const XLSX = require("xlsx");
 let config = JSON.parse(fs.readFileSync("./config.json"));
 let startIndex = config.index;
 let utils = require("./utils");
@@ -11,6 +10,7 @@ const chalk = require("chalk");
 let getDefaultValueFromContent = require("./getDefaultValueFromContent");
 let outputNewSheet = require("./generateExcel");
 let keyMap = require("./keyMap");
+let getExcelJson = require('./getExcel')
 
 async function getContent(page) {
   let obj = {};
@@ -412,34 +412,6 @@ async function inputCode(page) {
   }
 }
 
-function formatId(arr) {
-  for (let i = 0; i < arr.length; i++) {
-    let key = keyMap["表格id"];
-    let obj = arr[i];
-    let id = obj[key];
-    if (typeof id === "string") {
-      obj[key] = Number(obj[key].trim());
-    }
-  }
-}
-
-async function getExcelJson() {
-  let readFromExcel = !fs.existsSync(path.resolve("./excel.json"));
-  if (readFromExcel) {
-    const filepath = path.resolve(config.fileName);
-    const workbook = XLSX.readFile(filepath);
-    const { Sheets } = workbook;
-    const res = XLSX.utils.sheet_to_json(Sheets[config.sheetName], {
-      raw: false,
-    });
-    formatId(res);
-    return res;
-  } else {
-    let res = JSON.parse(fs.readFileSync(path.resolve("./excel.json")));
-    formatId(res);
-    return res;
-  }
-}
 
 async function start(page) {
   let targetUrl = config.origin + "/dc-admin#/inspection/spiderArticle/list";
