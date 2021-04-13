@@ -329,7 +329,7 @@ async function addOneRow({
     {
       key: "公布合格率",
       default: row === 1 ? successRate : obj["公布合格率"],
-      when: content.indexOf("合格率") !== -1,
+      when:/[^不]合格率/.test(content),
       validate: (val) =>
         val.match(/(\d+)(\.(\d)+)?%/) ? true : "请输入百分数！（按⬆重新输入）",
     },
