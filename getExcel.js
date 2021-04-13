@@ -4,8 +4,8 @@ const path = require("path");
 let config = JSON.parse(fs.readFileSync("./config.json"));
 let keyMap = require("./keyMap");
 
-async function getExcelJson(getFromExistFile= false) {
-  let readFromExcel = getFromExistFile && !fs.existsSync(path.resolve("./excel.json"));
+async function getExcelJson() {
+  let readFromExcel = !fs.existsSync(path.resolve("./excel.json"));
   if (readFromExcel) {
     const filepath = path.resolve(config.fileName);
     const workbook = XLSX.readFile(filepath);
