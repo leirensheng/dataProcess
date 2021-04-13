@@ -339,7 +339,7 @@ async function addOneRow({
         !answer["公布表格表名"] && !attachmentNum ? "无表格" : "",
     },
     {
-      key: "是否存在合并单元格",
+      key: "是否存在合并单元格(1-是，2-否)",
       type: "rawlist",
       default: "2",
       choices: [
