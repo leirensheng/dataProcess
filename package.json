@@ -23,6 +23,7 @@
     "carlo": "^0.9.46",
     "chalk": "^4.1.0",
     "chrome-launcher": "^0.13.4",
+    "clipboardy": "^2.3.0",
     "inquirer": "^7.3.3",
     "lighthouse": "^6.4.1",
     "pkg": "^4.4.9",

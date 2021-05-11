@@ -1,46 +1,7 @@
-const fs = require("fs");
-var exec = require("child_process").exec;
-const iconv = require('iconv-lite');
-
 function padLeftZero(str) {
   return ("00" + str).substr(str.length);
 }
 module.exports = {
-  copyToClipboard(text) {
-    text = iconv.encode(text, 'gbk');
-
-    let tempFile = "result.txt";
-    let command = `clip < ${tempFile} `;
-    fs.writeFileSync(tempFile, text,);
-
-    var cmdFileName = "copy.bat";
-    fs.writeFileSync(cmdFileName, command);
-    return new Promise((resolve, reject) => {
-      exec(cmdFileName, function (err, stdout, stderr) {
-        fs.unlinkSync(cmdFileName);
-        fs.unlinkSync(tempFile);
-        if (err || stderr) {
-          reject(err || stderr);
-          return;
-        }
-        resolve();
-      });
-    });
-
-    fs.writeFileSync(cmdFile, str);
-    return new Promise((resolve, reject) => {
-      console.log(cmdFile);
-      exec(cmdFile, (err, stdout, stderr) => {
-        fs.unlinkSync(cmdFile);
-        if (err || stderr) {
-          console.log(stderr);
-          reject();
-          return;
-        }
-        resolve();
-      });
-    });
-  },
   getNameLength(name) {
     let length = 0;
     for (let i = 0; i < name.length; i++) {

@@ -308,7 +308,7 @@ async function addOneRow({
       message: "合格数✔️",
       type: "number",
       default: successNum,
-      when: (answer) => !/(不符合)|(不合格)/.test(answer["公布表格表名"]),
+      when: (answer) => /未发现(不符合)|(不合格)/.test(answer["公布表格表名"])||!/(不符合)|(不合格)/.test(answer["公布表格表名"]),
       validate: (val) => (isNaN(val) ? "请输入数字！（按⬆重新输入）" : true),
     },
     {
